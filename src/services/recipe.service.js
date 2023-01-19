@@ -1,8 +1,7 @@
 const recipeRepository = require("../Repository/recipe.repository");
 const dietRepository = require("../Repository/diet.repository");
 const axios = require("axios");
-
-const APIKEY = "09192bc3cbe64830bf3e527e38a4943c";
+const { APIKEY } = process.env;
 const URL = "http://localhost:3002/api/";
 const URLTWO = `https://api.spoonacular.com/recipes/complexSearch?apiKey=${APIKEY}&addRecipeInformation=true&number=100`;
 const URLTHREE = (id) =>
@@ -100,7 +99,7 @@ const findAllRecipes = async () => {
     .findAllRecipes()
     .then((r) => mapArrayBdToArrayRecipe(r));
   const recipesApi = await axios
-    .get(`${URLTWO}allRecipes`)
+    .get(`${URLTWO}`)
     .then((r) => mapArrayApiToArrayRecipe(r.data.results));
   return [...recipesApi, ...recipesBd];
 };
