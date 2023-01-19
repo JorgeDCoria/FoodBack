@@ -1,17 +1,17 @@
-const recipeRepository = require('../Repository/recipe.repository');
-const dietRepository = require('../Repository/diet.repository');
-const axios = require('axios');
+const recipeRepository = require("../Repository/recipe.repository");
+const dietRepository = require("../Repository/diet.repository");
+const axios = require("axios");
 
-const APIKEY='09192bc3cbe64830bf3e527e38a4943c';
-const URL = 'http://localhost:3002/api/';
-const URLTWO =  `https://api.spoonacular.com/recipes/complexSearch?apiKey=${APIKEY}&addRecipeInformation=true&number=100`;
-const URLTHREE = `https://api.spoonacular.com/recipes/{id}/information?apiKey=${APIKEY}`;
+const APIKEY = "09192bc3cbe64830bf3e527e38a4943c";
+const URL = "http://localhost:3002/api/";
+const URLTWO = `https://api.spoonacular.com/recipes/complexSearch?apiKey=${APIKEY}&addRecipeInformation=true&number=100`;
+const URLTHREE = (id) =>
+  `https://api.spoonacular.com/recipes/${id}/information?apiKey=${APIKEY}`;
 
 //########## mapeo de datos de bd   ##########
 const mapArrayBdToArrayRecipe = (data) => {
-
-  return data.map(e => mapRecipeBdToRecipe(e));
-}
+  return data.map((e) => mapRecipeBdToRecipe(e));
+};
 const mapRecipeBdToRecipe = (recipe) => {
   return {
     id: recipe.id,
@@ -19,13 +19,13 @@ const mapRecipeBdToRecipe = (recipe) => {
     image: recipe.image,
     summary: recipe.summary,
     healthScore: recipe.healthScore,
-    diets: recipe.diets.map(e => e.name),
-    steps: recipe.steps //.map(e => {return {numer: e.number, step: e.step}})
-  }
-}
+    diets: recipe.diets.map((e) => e.name),
+    steps: recipe.steps, //.map(e => {return {numer: e.number, step: e.step}})
+  };
+};
 //########## mapeo de recipes de api ########################
 const mapArrayApiToArrayRecipe = (arrayApi) => {
-  return arrayApi.map(recipe => mapApiToRecipe(recipe))
+  return arrayApi.map((recipe) => mapApiToRecipe(recipe));
 };
 
 const mapApiToRecipe = (recipe) => {
@@ -46,8 +46,13 @@ const mapApiToRecipe = (recipe) => {
 
   if (recipe.analyzedInstructions.length) {
     for (let obj of recipe.analyzedInstructions) {
-      stepsApi = [...stepsApi, ...obj.steps.map(s => { return { number: s.number, step: s.step } })]
-    };
+      stepsApi = [
+        ...stepsApi,
+        ...obj.steps.map((s) => {
+          return { number: s.number, step: s.step };
+        }),
+      ];
+    }
   }
 
   return {
@@ -57,64 +62,76 @@ const mapApiToRecipe = (recipe) => {
     image: recipe.image,
     summary: recipe.summary,
     diets: Array.from(dietsApi),
-    steps: stepsApi
-
-  }
-}
-
+    steps: stepsApi,
+  };
+};
 
 const findRecipeByDiet = async (diet) => {
   const dietId = await dietRepository.findDietByName(diet);
   const recipesId = await recipeRepository.findRecipesIdByDiet(dietId.id);
-  let recipesBd = await recipeRepository.findRecipesByIds(recipesId).then(r => mapArrayBdToArrayRecipe(r));
-  let recipesApi = await axios.get(`${URL}allRecipes`)
-    .then(r => r.data.results)
-    .then(r => mapArrayApiToArrayRecipe(r.filter(r => r.diets.includes(diet))));
-  return [...recipesApi, ...recipesBd ];
-}
+  let recipesBd = await recipeRepository
+    .findRecipesByIds(recipesId)
+    .then((r) => mapArrayBdToArrayRecipe(r));
+  let recipesApi = await axios
+    .get(`${URL}allRecipes`)
+    .then((r) => r.data.results)
+    .then((r) =>
+      mapArrayApiToArrayRecipe(r.filter((r) => r.diets.includes(diet)))
+    );
+  return [...recipesApi, ...recipesBd];
+};
 
 const getRecipesByNameOpLike = async (name) => {
-  let recipesBd = await recipeRepository.findRecipeByNameOpLike(name).then(r => mapArrayBdToArrayRecipe(r));
-  let recipesApi = await axios.get(`${URL}allRecipes`)
-    .then(r => r.data.results)
-    .then(r => mapArrayApiToArrayRecipe(r.filter(r => r.title.includes(name))));
+  let recipesBd = await recipeRepository
+    .findRecipeByNameOpLike(name)
+    .then((r) => mapArrayBdToArrayRecipe(r));
+  let recipesApi = await axios
+    .get(URLTWO)
+    .then((r) => r.data.results)
+    .then((r) =>
+      mapArrayApiToArrayRecipe(r.filter((r) => r.title.includes(name)))
+    );
 
-  return [...recipesApi, ...recipesBd ];
-}
-
+  return [...recipesApi, ...recipesBd];
+};
 
 const findAllRecipes = async () => {
-  const recipesBd = await recipeRepository.findAllRecipes().then(r => mapArrayBdToArrayRecipe(r));
-  const recipesApi = await axios.get(`${URL}allRecipes`).then(r => mapArrayApiToArrayRecipe(r.data.results));
-  return [ ...recipesApi, ...recipesBd]
-}
+  const recipesBd = await recipeRepository
+    .findAllRecipes()
+    .then((r) => mapArrayBdToArrayRecipe(r));
+  const recipesApi = await axios
+    .get(`${URLTWO}allRecipes`)
+    .then((r) => mapArrayApiToArrayRecipe(r.data.results));
+  return [...recipesApi, ...recipesBd];
+};
 
 const getRecipeById = async (id) => {
   let recipe;
   try {
     if (isNaN(id)) {
-      recipe = await recipeRepository.findRecipeById(id).then(r => mapRecipeBdToRecipe(r));
+      recipe = await recipeRepository
+        .findRecipeById(id)
+        .then((r) => mapRecipeBdToRecipe(r));
     } else {
-      recipe = await axios.get(`${URL}byId`).then(r => r.data);
+      recipe = await axios.get(URLTHREE(id)).then((r) => r.data);
       if (recipe) recipe = mapApiToRecipe(recipe);
-      else throw ({ status: 400, message: `Not found Recipe with Id ${id}` })
+      else throw { status: 400, message: `Not found Recipe with Id ${id}` };
     }
     return recipe;
   } catch (e) {
-    throw ({ status: e?.status || 500, message: e.message });
+    throw { status: e?.status || 500, message: e.message };
   }
+};
 
-}
-
-const findRecipeByTitle = async (title) =>{
- let recipe = await recipeRepository.findRecipeByTitle(title);
- if(recipe) recipe = mapRecipeBdToRecipe(recipe);
- return recipe;
-}
+const findRecipeByTitle = async (title) => {
+  let recipe = await recipeRepository.findRecipeByTitle(title);
+  if (recipe) recipe = mapRecipeBdToRecipe(recipe);
+  return recipe;
+};
 module.exports = {
   findRecipeByDiet,
   getRecipesByNameOpLike,
   findAllRecipes,
   getRecipeById,
-  findRecipeByTitle
-}
+  findRecipeByTitle,
+};
