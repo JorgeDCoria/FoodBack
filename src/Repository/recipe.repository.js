@@ -47,6 +47,15 @@ const findRecipeByTitle = async (title) =>{
     throw({status: e?.status || 500, message: e.message });
   }
 }
+
+const addRecipe = async (recipe) =>{
+  try{
+    const recipe = await Recipe.create(recipe);
+    return recipe;
+  }catch(e){
+    throw ({status: e?.status || 500, message: e.message});
+  }
+}
 module.exports = {
   findRecipeByDiet,
   findRecipesIdByDiet,
@@ -54,5 +63,6 @@ module.exports = {
   findRecipeByNameOpLike,
   findAllRecipes, 
   findRecipeById,
-  findRecipeByTitle
+  findRecipeByTitle,
+  addRecipe
 }
