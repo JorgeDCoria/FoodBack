@@ -17,16 +17,18 @@
 //     =====`-.____`.___ \_____/___.-`___.-'=====
 //                       `=---='
 //     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-const server = require('./src/app.js');
-const { conn } = require('./src/db.js');
-const serviceDiet = require('./src/services/diet.service');
+const server = require("./src/app.js");
+const { conn } = require("./src/db.js");
+const serviceDiet = require("./src/services/diet.service");
+const port = process.env.PORT || 4000;
 
 // Syncing all the models at once.
 conn.sync({ force: false }).then(() => {
-  server.listen(3001, () => {
-    serviceDiet.findOrCreateDiets()
-      .then(r => console.log('%s listening at 3001'))
-      .catch(e => console.log(e));
-     // eslint-disable-line no-console
+  server.listen(port, () => {
+    serviceDiet
+      .findOrCreateDiets()
+      .then((r) => console.log("%s listening at " + port))
+      .catch((e) => console.log(e));
+    // eslint-disable-line no-console
   });
 });
